@@ -502,23 +502,25 @@ def analyze_market(df, spot_price, prev_close):
 
     # MOMENTUM
 
-    if hist_now > 0:
+    # MOMENTUM
 
-        bull += 15
+    if hist_now > 0:
+    bull += 15
 
     else:
+    bear += 15
+
     total = bull + bear
 
     confidence = int((bull / total) * 100)
 
     if confidence >= 65:
-        trade = "🟢 LONG"
+    trade = "🟢 LONG"
 
     elif confidence <= 35:
-        trade = "🔴 SHORT"
+    trade = "🔴 SHORT"
 
     else:
-        trade = "🟡 BEKLE"
     trade = "🟡 BEKLE"
 
     if confidence >= 80:
