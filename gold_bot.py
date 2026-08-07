@@ -466,24 +466,24 @@ def analyze_market(df, spot_price, prev_close):
     # EMA
 
     if ema50_now > ema200_now:
-        bull += 30
+        bull = +30
     else:
-        bear += 30
+        bear = +30
 
     # PRICE
 
     if spot_price > ema50_now:
-        bull += 20
+        bull = +20
     else:
-        bear += 20
+        bear = +20
 
     # RSI
 
     if rsi_now > 60:
-        bull += 15
+        bull = +15
 
     elif rsi_now < 40:
-        bear += 15
+        bear = +15
 
     else:
 
