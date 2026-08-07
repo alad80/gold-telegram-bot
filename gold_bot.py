@@ -502,47 +502,42 @@ def analyze_market(df, spot_price, prev_close):
 
     # MOMENTUM
 
-    # MOMENTUM
+        # MOMENTUM
 
     if hist_now > 0:
-    bull += 15
+        bull += 15
 
     else:
-    bear += 15
+        bear += 15
 
     total = bull + bear
 
     confidence = int((bull / total) * 100)
 
     if confidence >= 65:
-    trade = "🟢 LONG"
+        trade = "🟢 LONG"
 
     elif confidence <= 35:
-    trade = "🔴 SHORT"
+        trade = "🔴 SHORT"
 
     else:
-    trade = "🟡 BEKLE"
+        trade = "🟡 BEKLE"
 
     if confidence >= 80:
-
         stars = "⭐⭐⭐⭐⭐"
 
     elif confidence >= 65:
-
         stars = "⭐⭐⭐⭐"
 
     elif confidence >= 50:
-
         stars = "⭐⭐⭐"
 
     elif confidence >= 35:
-
         stars = "⭐⭐"
 
     else:
-
         stars = "⭐"
-
+   
     # RSI COMMENT
 
     if rsi_now >= 75:
