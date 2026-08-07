@@ -514,17 +514,17 @@ def analyze_market(df, spot_price, prev_close):
 
     confidence = int((bull / total) * 100)
 
-    if confidence >= LONG_LIMIT:
+    if confidence >= 65:
 
-        trade = "🟢 LONG"
+    trade = "🟢 LONG"
 
-    elif confidence <= SHORT_LIMIT:
+elif confidence <= 35:
 
-        trade = "🔴 SHORT"
+    trade = "🔴 SHORT"
 
-    else:
+else:
 
-        trade = "🟡 BEKLE"
+    trade = "🟡 BEKLE"
 
     if confidence >= 80:
 
