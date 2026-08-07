@@ -1,47 +1,32 @@
 """
 GOLD AI TELEGRAM BOT
---------------------
-Her calistirildiginda XAUUSD (altin) icin basit EMA trend analizi yapar
-ve sonucu Telegram'a mesaj olarak gonderir.
-
-Bu bir teknik analiz aracidir, finansal tavsiye degildir.
-Piyasa yonu garanti edilemez; sonuclar sadece EMA trendine dayanir.
 """
-
 import os
 import sys
 import requests
 import yfinance as yf
 import pandas as pd
 
-# ---------------------------------------------------------
-# AYARLAR (ortam degiskenlerinden okunur - guvenlik icin)
-# ---------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-
-GOLD_TICKER = "GC=F"     # Yahoo Finance - Gold Futures (XAUUSD'ye cok yakin hareket eder)
+GOLD_TICKER = "GC=F"
 EMA_FAST = 50
 EMA_SLOW = 200
 
-
 def get_gold_data():
-    """Son verileri Yahoo Finance'den ceker (gunluk mum)."""
     data = yf.download(GOLD_TICKER, period="400d", interval="1d", progress=False)
     if data.empty:
-        raise RuntimeError("Altin verisi alinamadi (bos veri dondu).")
+        raise RuntimeError("Altin verisi alinamadi.")
     return data
 
-
-def calculate_trend(data: pd.DataFrame):
-    """EMA50 / EMA200 kesisimine gore basit trend yonu hesaplar."""
-    close = data["Close"]
+def calculate_trend(data):
+    close = data["Close"].squeeze()
     ema_fast = close.ewm(span=EMA_FAST, adjust=False).mean()
     ema_slow = close.ewm(span=EMA_SLOW, adjust=False).mean()
-    current_price = float(close.iloc[-1].squeeze())
-    current_ema_fast = float(ema_fast.iloc[-1].squeeze())
-    current_ema_slow = float(ema_slow.iloc[-1].squeeze())
-    prev_price = float(close.iloc[-2].squeeze())
+    current_price = float(close.iloc[-1])
+    current_ema_fast = float(ema_fast.iloc[-1])
+    current_ema_slow = float(ema_slow.iloc[-1])
+    prev_price = float(close.iloc[-2])
     daily_change = current_price - prev_price
     daily_change_pct = (daily_change / prev_price) * 100
     if current_ema_fast > current_ema_slow and current_price > current_ema_fast:
@@ -63,7 +48,7 @@ def calculate_trend(data: pd.DataFrame):
         "daily_change_pct": daily_change_pct,
     }
 
-def format_message(analysis: dict) -> str:
+def format_message(analysis):
     return (
         f"{analysis['emoji']} *GOLD AI - Gunluk Analiz*\n\n"
         f"*Guncel Fiyat:* ${analysis['price']:.2f}\n"
@@ -71,27 +56,17 @@ def format_message(analysis: dict) -> str:
         f"*EMA{EMA_FAST}:* {analysis['ema_fast']:.2f}\n"
         f"*EMA{EMA_SLOW}:* {analysis['ema_slow']:.2f}\n\n"
         f"*Trend Yonu:* {analysis['trend']}\n\n"
-        f"_Not: Bu otomatik bir teknik analizdir, yatirim tavsiyesi degildir. "
-        f"Piyasa yonu garanti edilemez._"
+        f"_Not: Bu otomatik bir teknik analizdir, yatirim tavsiyesi degildir._"
     )
 
-
-def send_telegram_message(text: str):
+def send_telegram_message(text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise RuntimeError(
-            "TELEGRAM_BOT_TOKEN veya TELEGRAM_CHAT_ID ortam degiskeni tanimli degil."
-        )
-
+        raise RuntimeError("Token veya Chat ID tanimli degil.")
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown",
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
     response = requests.post(url, data=payload, timeout=15)
     response.raise_for_status()
     return response.json()
-
 
 def main():
     try:
@@ -104,13 +79,11 @@ def main():
     except Exception as e:
         error_msg = f"⚠️ GOLD AI Bot Hatasi: {e}"
         print(error_msg, file=sys.stderr)
-        # Hata olsa bile Telegram'a haber vermeyi dene
         try:
             send_telegram_message(error_msg)
         except Exception:
             pass
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
