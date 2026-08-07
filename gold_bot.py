@@ -1,89 +1,113 @@
 """
-GOLD AI TELEGRAM BOT
+GOLD AI TELEGRAM BOT - Gelismis Versiyon
+EMA, RSI, MACD ve Haber Analizi
 """
 import os
 import sys
 import requests
 import yfinance as yf
 import pandas as pd
+import xml.etree.ElementTree as ET
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-GOLD_TICKER = "GC=F"
+GOLD_TICKER = "XAUUSD=X"
 EMA_FAST = 50
 EMA_SLOW = 200
 
 def get_gold_data():
-    data = yf.download(GOLD_TICKER, period="400d", interval="1d", progress=False)
+    data = yf.download(GOLD_TICKER, period="400d", interval="1d", progress=False, auto_adjust=True)
+    if data.empty:
+        data = yf.download("GC=F", period="400d", interval="1d", progress=False, auto_adjust=True)
     if data.empty:
         raise RuntimeError("Altin verisi alinamadi.")
     return data
 
-def calculate_trend(data):
+def calculate_indicators(data):
     close = data["Close"].squeeze()
+
+    # EMA
     ema_fast = close.ewm(span=EMA_FAST, adjust=False).mean()
     ema_slow = close.ewm(span=EMA_SLOW, adjust=False).mean()
+
+    # RSI (14)
+    delta = close.diff()
+    gain = delta.where(delta > 0, 0).ewm(span=14, adjust=False).mean()
+    loss = (-delta.where(delta < 0, 0)).ewm(span=14, adjust=False).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+
+    # MACD
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd_line = ema12 - ema26
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+    macd_hist = macd_line - signal_line
+
     current_price = float(close.iloc[-1])
-    current_ema_fast = float(ema_fast.iloc[-1])
-    current_ema_slow = float(ema_slow.iloc[-1])
     prev_price = float(close.iloc[-2])
     daily_change = current_price - prev_price
     daily_change_pct = (daily_change / prev_price) * 100
-    if current_ema_fast > current_ema_slow and current_price > current_ema_fast:
+
+    current_ema_fast = float(ema_fast.iloc[-1])
+    current_ema_slow = float(ema_slow.iloc[-1])
+    current_rsi = float(rsi.iloc[-1])
+    current_macd = float(macd_line.iloc[-1])
+    current_signal = float(signal_line.iloc[-1])
+    current_hist = float(macd_hist.iloc[-1])
+
+    # TREND KARARI - kararsiz yok
+    bullish_signals = 0
+    bearish_signals = 0
+
+    # EMA sinyali
+    if current_ema_fast > current_ema_slow:
+        bullish_signals += 2
+    else:
+        bearish_signals += 2
+
+    # Fiyat EMA50'ye gore
+    if current_price > current_ema_fast:
+        bullish_signals += 1
+    else:
+        bearish_signals += 1
+
+    # RSI sinyali
+    if current_rsi > 55:
+        bullish_signals += 1
+    elif current_rsi < 45:
+        bearish_signals += 1
+
+    # MACD sinyali
+    if current_macd > current_signal:
+        bullish_signals += 1
+    else:
+        bearish_signals += 1
+
+    if bullish_signals > bearish_signals:
         trend = "YUKSELIS (Bullish)"
         emoji = "🟢📈"
-    elif current_ema_fast < current_ema_slow and current_price < current_ema_fast:
+    else:
         trend = "DUSUS (Bearish)"
         emoji = "🔴📉"
+
+    # RSI yorumu
+    if current_rsi >= 70:
+        rsi_comment = "⚠️ Asiri Alim Bolgesi"
+    elif current_rsi <= 30:
+        rsi_comment = "⚠️ Asiri Satim Bolgesi"
+    elif current_rsi > 55:
+        rsi_comment = "Guclu"
+    elif current_rsi < 45:
+        rsi_comment = "Zayif"
     else:
-        trend = "YATAY / KARARSIZ (Neutral)"
-        emoji = "🟡➡️"
-    return {
-        "trend": trend,
-        "emoji": emoji,
-        "price": current_price,
-        "ema_fast": current_ema_fast,
-        "ema_slow": current_ema_slow,
-        "daily_change": daily_change,
-        "daily_change_pct": daily_change_pct,
-    }
+        rsi_comment = "Nötr"
 
-def format_message(analysis):
-    return (
-        f"{analysis['emoji']} *GOLD AI - Gunluk Analiz*\n\n"
-        f"*Guncel Fiyat:* ${analysis['price']:.2f}\n"
-        f"*Gunluk Degisim:* {analysis['daily_change']:+.2f} ({analysis['daily_change_pct']:+.2f}%)\n\n"
-        f"*EMA{EMA_FAST}:* {analysis['ema_fast']:.2f}\n"
-        f"*EMA{EMA_SLOW}:* {analysis['ema_slow']:.2f}\n\n"
-        f"*Trend Yonu:* {analysis['trend']}\n\n"
-        f"_Not: Bu otomatik bir teknik analizdir, yatirim tavsiyesi degildir._"
-    )
-
-def send_telegram_message(text):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise RuntimeError("Token veya Chat ID tanimli degil.")
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
-    response = requests.post(url, data=payload, timeout=15)
-    response.raise_for_status()
-    return response.json()
-
-def main():
-    try:
-        data = get_gold_data()
-        analysis = calculate_trend(data)
-        message = format_message(analysis)
-        send_telegram_message(message)
-        print("Mesaj basariyla gonderildi.")
-        print(message)
-    except Exception as e:
-        error_msg = f"⚠️ GOLD AI Bot Hatasi: {e}"
-        print(error_msg, file=sys.stderr)
-        try:
-            send_telegram_message(error_msg)
-        except Exception:
-            pass
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+    # MACD yorumu
+    if current_hist > 0 and current_macd > current_signal:
+        macd_comment = "Yukselis Momentumu"
+    elif current_hist < 0 and current_macd < current_signal:
+        macd_comment = "Dusus Momentumu"
+    elif current_hist > 0:
+        macd_comment = "Momentum Gucleniyor"
+    else:
