@@ -36,19 +36,14 @@ def get_gold_data():
 def calculate_trend(data: pd.DataFrame):
     """EMA50 / EMA200 kesisimine gore basit trend yonu hesaplar."""
     close = data["Close"]
-
     ema_fast = close.ewm(span=EMA_FAST, adjust=False).mean()
     ema_slow = close.ewm(span=EMA_SLOW, adjust=False).mean()
-
     current_price = float(close.iloc[-1].squeeze())
     current_ema_fast = float(ema_fast.iloc[-1].squeeze())
     current_ema_slow = float(ema_slow.iloc[-1].squeeze())
-
-    # Onceki gunle karsilastirip momentumu da ekleyelim
-   prev_price = float(close.iloc[-2].squeeze())
+    prev_price = float(close.iloc[-2].squeeze())
     daily_change = current_price - prev_price
     daily_change_pct = (daily_change / prev_price) * 100
-
     if current_ema_fast > current_ema_slow and current_price > current_ema_fast:
         trend = "YUKSELIS (Bullish)"
         emoji = "🟢📈"
@@ -58,7 +53,6 @@ def calculate_trend(data: pd.DataFrame):
     else:
         trend = "YATAY / KARARSIZ (Neutral)"
         emoji = "🟡➡️"
-
     return {
         "trend": trend,
         "emoji": emoji,
@@ -68,7 +62,6 @@ def calculate_trend(data: pd.DataFrame):
         "daily_change": daily_change,
         "daily_change_pct": daily_change_pct,
     }
-
 
 def format_message(analysis: dict) -> str:
     return (
