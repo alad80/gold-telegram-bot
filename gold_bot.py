@@ -67,7 +67,7 @@ WARNING = "⚠️"
 def log(text):
 
     print(
-        f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}] {text}"
+        f"[{datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}] {text}"
     )
 
 
