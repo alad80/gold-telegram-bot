@@ -40,12 +40,12 @@ def calculate_trend(data: pd.DataFrame):
     ema_fast = close.ewm(span=EMA_FAST, adjust=False).mean()
     ema_slow = close.ewm(span=EMA_SLOW, adjust=False).mean()
 
-    current_price = float(close.iloc[-1])
-    current_ema_fast = float(ema_fast.iloc[-1])
-    current_ema_slow = float(ema_slow.iloc[-1])
+    current_price = float(close.iloc[-1].squeeze())
+    current_ema_fast = float(ema_fast.iloc[-1].squeeze())
+    current_ema_slow = float(ema_slow.iloc[-1].squeeze())
 
     # Onceki gunle karsilastirip momentumu da ekleyelim
-    prev_price = float(close.iloc[-2])
+   prev_price = float(close.iloc[-2].squeeze())
     daily_change = current_price - prev_price
     daily_change_pct = (daily_change / prev_price) * 100
 
