@@ -598,7 +598,6 @@ def analyze_market(df, spot_price, prev_close):
         sr_comment = "İki seviye arasında"
 
     return {
-
         "price": spot_price,
 
         "change": daily_change,
