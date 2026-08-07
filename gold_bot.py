@@ -256,34 +256,33 @@ def atr(df, period=14):
 
 def support_resistance(df):
 
-    high = df["High"].tail(LOOKBACK_SR)
+    high = df["High"].squeeze()
 
-    low = df["Low"].tail(LOOKBACK_SR)
+    low = df["Low"].squeeze()
 
-    close = df["Close"]
+    if isinstance(high, pd.DataFrame):
+        high = high.iloc[:, 0]
+
+    if isinstance(low, pd.DataFrame):
+        low = low.iloc[:, 0]
+
+    high = high.tail(LOOKBACK_SR)
+    low = low.tail(LOOKBACK_SR)
 
     atr_value = float(atr(df).iloc[-1])
 
-    resistance1 = float(high.max())
-
+    resistance1 = float(high.to_numpy().max())
     resistance2 = resistance1 + atr_value
 
-    support1 = float(low.min())
-
+    support1 = float(low.to_numpy().min())
     support2 = support1 - atr_value
 
     return {
-
         "S1": support1,
-
         "S2": support2,
-
         "R1": resistance1,
-
         "R2": resistance2,
-
         "ATR": atr_value
-
     }
 
 
